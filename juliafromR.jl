@@ -1,5 +1,5 @@
 function getfocaldata()
-  R"source('/home/seth/code/LogisticTopicRegression/R2julia.R')";
+  R"source('/home/seth/code/LatentSocialPheno/R2julia.R')";
   X = @> rcopy("X") transpose();
 
   nc = Int64(rcopy("length(Y)-ncovcols"));
