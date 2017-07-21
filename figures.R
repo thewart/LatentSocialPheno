@@ -85,7 +85,7 @@ topicsummary <- topic[,.(value=mean(value)),by=.(topic,type,behav)] %>% .[value 
 ggplot(topicsummary[topic %in% paste0("S",1:10),consolidate(behav,value,0.33),by=c("topic","type")],aes(y=value,x="",fill=type,label=behav)) + geom_point() +
   geom_label_repel(fontface="bold",size=4,force = 12) + coord_cartesian(ylim = c(0,1)) + theme_light(base_size = 16) + 
   scale_fill_brewer(drop=F,palette = "Accent", guide=guide_legend(title="")) + scale_y_continuous(name="Behavior (relative rate)",minor_breaks = NULL) + 
-  facet_wrap(~topic,nrow=2) + scale_x_discrete(name="",breaks=NULL)
+  facet_wrap(~topic,nrow=5) + scale_x_discrete(name="",breaks=NULL)
 
 
 ## regression coefficients ####
@@ -96,10 +96,10 @@ betadat_bl[,beta:=beta-betadat[topic==bl,beta],by=topic]
 ggplot(betadat_bl[topic !=bl,.(mu=mean(beta),lb=quantile(beta,0.025),ub=quantile(beta,0.975)),by=.(coeff,topic)],
        aes(x=mu,y=coeff,xmin=lb,xmax=ub)) + geom_point() + facet_wrap(~topic) +
   geom_errorbarh(height=0) + geom_vline(xintercept = 0) + scale_y_discrete("Covariate",labels = coefname) + 
-  scale_x_continuous("Regression coefficient", minor_breaks = NULL)
+  scale_x_continuous("Regression coefficient", minor_breaks = NULL) + theme_light()
 
 ## functions of covariates ####
-tpdat <- betadat[.(FocalID=Xdf$FocalID,tphat=as.vector(X %*% beta)),by=.(iter,topic)]
+tpdat <- betadat[,.(FocalID=Xdf$FocalID,tphat=as.vector(X %*% beta)),by=.(iter,topic)]
 whatplt <- "rank"
 
 if (whatplt=="rank"){
@@ -120,25 +120,28 @@ if (whatplt=="rank"){
                       age=Xdf[,mean(age)],group=c("F","HH","R"))
 }
 
-tpsimhat <- tpdat[,.(ID=1:nrow(simdf),rank=simdf$rank,sex=simdf$sex,etahat=lm(tphat ~ group +sex*poly(age,2) + sex*poly(rank,2),dat=cbind(Xdf,tphat)) %>% predict(newdata=simdf)),
+tpsimhat <- tpdat[,.(ID=1:nrow(simdf),rank=simdf$rank,sex=simdf$sex,group=simdf$group,etahat=lm(tphat ~ group +sex*poly(age,2) + sex*poly(rank,2),dat=cbind(Xdf,tphat)) %>% predict(newdata=simdf)),
                   ,by=.(iter,topic)]
 tpsimhat <- merge(tpsimhat,mudat)
 tpsimhat[,etahat:=etahat+mu]; tpsimhat[,mu:=NULL]
 tpsimhat[,prob:=exp(etahat)/sum(exp(etahat)),by=.(iter,ID)]
 
 if (whatplt=="rank"){
-  tphatsumm <- tpsimhat[,.(rank=rank[1],sex=sex[1],mu=mean(prob),lb=quantile(prob,0.05),ub=quantile(prob,0.95)),by=.(ID,topic)]
+  tphatsumm <- tpsimhat[,.(rank=rank[1],sex=sex[1],mu=mean(prob),lb=quantile(prob,0.025),ub=quantile(prob,0.975)),by=.(ID,topic)]
+  ggplot(tphatsumm,aes(x=rank,y=mu,color=sex)) + geom_line() + geom_ribbon(aes(ymin=lb,ymax=ub,fill=sex),alpha=0.25,linetype=0) +
+    facet_wrap(~topic,nrow = 2,scales = "free_y") + theme_light() + scale_y_continuous(name="Probability",minor_breaks = NULL,breaks=scales::pretty_breaks(n=3)) +
+    scale_x_continuous(name="Dominance Rank",minor_breaks = NULL,breaks=1:3,labels=c("L","M","H")) + 
+    scale_fill_discrete("Sex",labels=c("F","M")) + scale_color_discrete("Sex",labels=c("F","M")) +
+    theme(legend.margin=margin( r=0, l=0),legend.title = element_text(size=10))
+  
 } else if (whatplt=="age") {
   tphatsumm <- tpsimhat[,.(age=age[1],sex=sex[1],mu=mean(prob),lb=quantile(prob,0.05),ub=quantile(prob,0.95)),by=.(ID,topic)]
 } else if (whatplt=="group") {
-  tphatsumm <- tpsimhat[,.(group
-                           
-                           =group[1],sex=sex[1],mu=mean(prob),lb=quantile(prob,0.05),ub=quantile(prob,0.95)),by=.(ID,topic)]
-}
-ggplot(tphatsumm,aes(x=rank,y=mu,color=sex)) + geom_line() + geom_ribbon(aes(ymin=lb,ymax=ub,fill=sex),alpha=0.25,linetype=0) +
-  facet_wrap(~topic,nrow = 2,scales = "free_y") + theme_light() + scale_y_continuous(name="Probability",minor_breaks = NULL) +
-  scale_x_continuous(name="Dominance Rank",minor_breaks = NULL,breaks=1:3,labels=c("L","M","H")) + 
-  scale_color_discrete("",labels=c("Female","Male")) + scale_fill_discrete("",labels=c("Female","Male"))
+  tphatsumm <- tpsimhat[,.(group=group[1],sex=sex[1],mu=mean(prob),lb=quantile(prob,0.025),ub=quantile(prob,0.975)),by=.(ID,topic)]
+  ggplot(tphatsumm,aes(x=group,y=mu,color=sex)) + geom_pointrange(aes(ymin=lb,ymax=ub),position=position_dodge(0.5))+ theme_light() +
+    scale_y_continuous(name="Probability",minor_breaks = NULL,breaks=scales::pretty_breaks(n=3)) + scale_x_discrete(name="Social Group") + 
+    facet_wrap(~topic,nrow = 2,scales = "free_y") + scale_color_discrete("Sex",labels=c("F","M")) +
+    theme(legend.margin=margin( r=0, l=0),legend.title = element_text(size=10))}
 
 ## pseudo-h2 ####
 tpdat2 <- merge(tpdat,mudat[,-"prob"]) #see previous section for tpdat
@@ -151,9 +154,8 @@ r2dat <- merge(h2dat[,-c("mu","u")],etadat,by = c("iter","topic","FocalID"))
 
 r2sum <- r2dat[,.(h2=1-var(prob-probxbu)/var(prob-probxb)),by=c("iter","topic")]
 ggplot(r2sum[,.(R2=mean(h2),lb=quantile(h2,0.17),llb=quantile(h2,0.025),ub=quantile(h2,0.83),uub=quantile(h2,0.95)),by=topic],
-       aes(y=R2,ymax=ub,ymin=lb,x=topic)) + geom_errorbar(width=0,size=2) + 
-  geom_errorbar(aes(ymin=llb,ymax=uub),width=0,size=0.25) + xlab("Behavioral state") +
-  geom_point(shape = 21, colour = "black", fill = "white", size = 2, stroke = 2) + 
+       aes(y=R2,ymax=ub,ymin=lb,x=topic)) + geom_pointrange(width=1.5) + 
+  geom_errorbar(aes(ymin=llb,ymax=uub),width=0,size=0.25) + xlab("Behavioral state") + 
   theme_light() + theme(panel.grid.major.x = element_blank()) + geom_hline(yintercept = 0) + ylab(expression("Pseudo H"^2))
 
 
