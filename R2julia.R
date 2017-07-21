@@ -1,4 +1,4 @@
-source("/home/seth/code/LogisticTopicRegression/parsefocaldata.R")
+source("/home/seth/code/LatentSocialPheno//parsefocaldata.R")
 source("/home/seth/Dropbox/monkeybris/rscript/getAge.R")
 basepath <- "~/Dropbox/focaldata_processed/"
 fpath <- paste0(basepath,c("F2013/Txtexports_all_processed.csv",
