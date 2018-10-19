@@ -126,15 +126,38 @@ scanprep <- function(dat) {
 }
 
 #divide behaviors in ptetho based on matching to modifiers
-eventsplit <- function(behav,ptetho,modifier,n) {
-  if (!(behav %in% ptetho$behavior) || (ptetho[behavior==behav,is.na(modifier)]))
-    return(rep(behav,n))
-  else { 
-    guh <- str_replace_all(modifier," ","") %>% str_extract(pattern=ptetho[behavior==behav,modifier])
-    guh[is.na(guh)] <- rep(behav,sum(is.na(guh)))
-    guh[!is.na(guh)] <- paste0(behav,":",guh[!is.na(guh)])
-    return(guh)
+eventsplit <- function(behav,targmod,ptetho) {
+  targmod <- str_replace_all(targmod," ","")
+  nb <- nrow(ptetho)
+  npte <- copy(ptetho)
+  for (i in 1:nb) {
+    ibeh <- ptetho$behavior[i]
+    behmatch <- str_detect(behav,ibeh)
+    if (is.na(ptetho$modifier[i]) | all(!behmatch)) {
+      next
+    } else {
+      mod <- str_split(ptetho$modifier[i],";",2)[[1]]
+      imod <- mod[1]
+      npte$modifier[i] <- mod[2]
+
+      newb <- string_attach(behav[behmatch],targmod[behmatch],imod)
+      behav[behmatch] <- newb
+    }
   }
+  
+  if ( is.na(npte$modifier) %>% all() ) {
+    return(behav)
+  } else {
+    return(eventsplit(behav,targmod,npte))
+  }
+}
+
+string_attach <- function(base,string,pattern) {
+  guh <- str_extract(string,pattern)
+  notna <- !is.na(guh)
+  out <- base
+  out[notna] <- paste0(out[notna],":",guh[notna])
+  return(out)
 }
                              
 collectfocal <- function(bdat,ptetho=NULL,stetho=NULL,nsec=NA,group,fixyear=T,state.maxsec=630)
