@@ -107,7 +107,7 @@ countprep <- function(behav,dat,adultsonly=T) {
   underage <- c("HUMAN","INFANT","JUVENILE","NO ANIMAL","UNKNOWN")
   pt <- dat[!(PartnerID %in% underage),length(EventName),by=c("Observation","Behavior")]
   pt <- dcast(pt,Observation ~ Behavior,fill=0)
-  pt <- pt[,c(1,sapply(names(pt),function(x) str_detect(x,pattern = behav) %>% any) %>% which),with=F]
+  pt <- pt[,c(1,sapply(names(pt),function(x) str_detect(x,pattern = paste0("^",behav,"(:|$)")) %>% any) %>% which),with=F]
   setcolorder(pt,c("Observation",eventslices(names(pt),behav)))
   return(pt)
 }
@@ -132,7 +132,7 @@ eventsplit <- function(behav,targmod,ptetho) {
   npte <- copy(ptetho)
   for (i in 1:nb) {
     ibeh <- ptetho$behavior[i]
-    behmatch <- str_detect(behav,ibeh)
+    behmatch <- str_detect(behav,paste0("^",ibeh,"(:|$)"))
     if (is.na(ptetho$modifier[i]) | all(!behmatch)) {
       next
     } else {
