@@ -10,6 +10,7 @@ samesex <- function(data,demo) {
 
 addmodifier <- function(data,func,modname=as.character(substitute(func)),...) {
   modcontent <- func(data,...)
+  modcontent[bdat[,PartnerID!=""] & is.na(modcontent)] <- "NA"
   data[!is.na(modcontent),BehaviorModifier:=paste0(BehaviorModifier,";",
                                  modname,"(",modcontent[!is.na(modcontent)],")")]
 }
