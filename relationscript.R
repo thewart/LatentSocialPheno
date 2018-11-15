@@ -1,4 +1,4 @@
-iskin <- function(data,kinmat,thresh=0.5) {
+iskin <- function(data,kinmat,thresh=0.24) {
   inds <- data[,cbind(match(FocalID,rownames(A)),
                 match(PartnerID,colnames(A)))]
   return(A[inds]>=thresh)
@@ -15,10 +15,13 @@ addmodifier <- function(data,func,modname=as.character(substitute(func)),...) {
                                  modname,"(",modcontent[!is.na(modcontent)],")")]
 }
 
-countkin <- function(ID,kinmat,thresh=0.5) {
+countkin <- function(ID,kinmat,sex,thresh=0.24) {
+  sexmatch <- (((sex=="f")-0.5)*2) %>% tcrossprod()
   kinnames <- colnames(kinmat)
   tmp <- (kinmat>=thresh)[match(ID,kinnames),match(ID,kinnames)]
-  return(data.table(ID=colnames(tmp),kincount=colSums(tmp)-1))
+  return(data.table(ID=colnames(tmp),
+                    kin_samesex=colSums(tmp*(sexmatch==1))-1,
+                    kin_diffsex=colSums(tmp*(sexmatch==-1))))
 }
 
 partnerrank <- function(data,rank) {
@@ -32,8 +35,3 @@ partnerrank <- function(data,rank) {
   
   return(comp)
 }
-
-
-
-
-
