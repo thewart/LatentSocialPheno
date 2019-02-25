@@ -29,9 +29,11 @@ partnerrank <- function(data,rank) {
   partrank <- rank[data,ORD_RANK,on=c(ID="PartnerID",GROUP="Group",YEAR="Year"),mult="first"]
   
   comp <- rep(NA,length(focrank))
-  comp[focrank>partrank] <- "lower"
+  comp[focrank>=partrank] <- "lower"
   comp[focrank<partrank] <- "higher"
-  comp[focrank==partrank] <- "similar"
+  comp[focrank=="H" & partrank=="H"] <- "higher"
+  # comp[focrank>partrank] <- "lower"
+  # comp[focrank==partrank] <- "similar"
   
   return(comp)
 }
